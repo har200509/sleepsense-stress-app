@@ -52,7 +52,7 @@ def load_metrics():
 
 @st.cache_data
 def load_data():
-    return pd.read_csv(ROOT / "data" / "sleep_stress_1000.csv")
+    return pd.read_csv(ROOT / "data" / "sleep_stress_data.csv")
 
 
 model, M, DF = load_model(), load_metrics(), load_data()
@@ -117,7 +117,7 @@ with st.sidebar:
 
 res = pd.DataFrame(M["results"])
 best = M["best_model"]
-best_row = res[(res["model"] == best) & (res["data"] == "augmented")].iloc[0]
+best_row = res[(res["model"] == best) & (res["data"] == "real only")].iloc[0]
 
 
 # ================================== HOME =====================================
@@ -126,7 +126,7 @@ if page == "Home":
          "A machine-learning app trained on sleep, health and lifestyle data, with a personal "
          "coach that shows what you could change to lower your predicted stress.")
     c = st.columns(4)
-    c[0].markdown(card("Training data", f"{M['n_total']:,}", f"{M['n_original']} real + {M['n_synthetic']} synthetic rows"), unsafe_allow_html=True)
+    c[0].markdown(card("Training data", f"{M['n_total']:,}", f"real records, {M['n_unique_original']} unique profiles"), unsafe_allow_html=True)
     c[1].markdown(card("Model", "Blend", "ElasticNet + Gradient Boosting"), unsafe_allow_html=True)
     c[2].markdown(card("R² on unseen people", f"{best_row['r2_mean']:.2f}", "real held-out profiles", TEAL), unsafe_allow_html=True)
     c[3].markdown(card("Typical error", f"±{best_row['rmse_mean']:.2f}", "stress points (scale 3–8)", CYAN), unsafe_allow_html=True)
@@ -139,8 +139,8 @@ if page == "Home":
     b.markdown(card("Model Lab", "Regularisation",
                     "Linear vs Ridge, Lasso, ElasticNet and tree models, scored on real unseen data."),
                unsafe_allow_html=True)
-    d.markdown(card("Data Explorer", "1,000 rows",
-                    "Browse, filter and download the dataset, with original and synthetic rows labelled."),
+    d.markdown(card("Data Explorer", f"{M['n_total']} rows",
+                    "Browse, filter and download the dataset behind the model."),
                unsafe_allow_html=True)
 
     st.markdown("### Strongest signals in the data")
@@ -158,6 +158,16 @@ if page == "Home":
 # ============================== STRESS COACH =================================
 elif page == "Stress Coach":
     hero("Stress Coach", "Enter your profile, get a predicted stress level, then explore what would lower it.")
+
+    with st.expander("How does Stress Coach work?"):
+        st.markdown("""
+1. **Predict.** Your 12 inputs go through the trained model (a blend of ElasticNet regression and Gradient Boosting) to give a stress score.
+2. **Test each habit.** For sleep duration, sleep quality, activity and steps, the app copies your profile, changes *only that one habit* to a healthy target (8 h, quality 8, 75 min, 8,000 steps), and predicts again. The difference is that habit's possible reduction.
+3. **Rank.** Habits are ranked by how much they would lower your score, giving the top recommendations.
+4. **What-if plan.** The sliders change several habits at once and the model re-predicts instantly, so you can compare *now* with *plan*.
+
+These are associations learned from the dataset, not proven cause and effect, and the tool is not medical advice.
+""")
 
     left, right = st.columns([5, 6], gap="large")
     with left:
@@ -271,10 +281,9 @@ elif page == "Stress Coach":
 elif page == "Model Lab":
     hero("Model Lab", "Six model families compared on real, unseen people, including regularised regression.")
     st.markdown(
-        f"**How we score fairly.** The dataset has {M['n_original']} real rows but only "
-        f"{M['n_unique_original']} unique people, and we grew it to {M['n_total']:,} rows with synthetic copies. "
-        "To avoid inflated scores, we split by unique person, augment **only the training side**, and score on "
-        "real, de-duplicated people the model never saw. Numbers are the mean of 20 random splits.")
+        f"**How we score fairly.** The dataset has {M['n_original']} records but only "
+        f"{M['n_unique_original']} unique people, because many rows repeat. To avoid inflated scores, we split by "
+        "unique person and score on people the model never saw during training. Numbers are the mean of 20 random splits.")
 
     show = res.copy()
     show["R²"] = show["r2_mean"].round(3)
@@ -282,13 +291,12 @@ elif page == "Model Lab":
     show["MAPE %"] = (show["mape_mean"] * 100).round(1)
     c1, c2 = st.columns([3, 2], gap="large")
     with c1:
-        fig = px.bar(show, x="model", y="R²", color="data", barmode="group",
-                     color_discrete_map={"real only": SLATE, "augmented": TEAL},
-                     title="R² on real held-out people", labels={"model": "", "data": "Training data"})
+        fig = px.bar(show, x="model", y="R²", color_discrete_sequence=[TEAL],
+                     title="R² on unseen people", labels={"model": "", "data": "Training data"})
         fig.update_layout(yaxis_range=[0.7, 1.0], xaxis_tickangle=-25)
         st.plotly_chart(style(fig, 400), use_container_width=True)
     with c2:
-        st.dataframe(show[show["data"] == "augmented"][["model", "R²", "RMSE", "MAPE %"]]
+        st.dataframe(show[["model", "R²", "RMSE", "MAPE %"]]
                      .sort_values("RMSE").set_index("model"), use_container_width=True)
         st.success(f"Selected model: **{best}**")
         st.caption("The blend averages a regularised linear model (stable, smooth) with gradient boosting "
@@ -314,18 +322,17 @@ elif page == "Model Lab":
     st.markdown(
         f"- Regularisation helped: R² rose from **{lin['r2_mean']:.2f}** (plain linear) to **{en['r2_mean']:.2f}** (ElasticNet).\n"
         f"- Blending a regularised model with boosting gave the best score, **R² {best_row['r2_mean']:.2f}**.\n"
-        "- Synthetic rows did **not** raise accuracy on real people: they are jittered copies, so they add "
-        "stability, not new information. Real data is what would improve the model.")
+        "- More real data is the clearest way to improve the model further: the dataset has only "
+        f"{M['n_unique_original']} unique people.")
 
 
 # ============================== DATA EXPLORER ================================
 elif page == "Data Explorer":
-    hero("Data Explorer", f"{M['n_total']:,} rows: {M['n_original']} original and {M['n_synthetic']} synthetic, clearly labelled.")
-    f1, f2, f3 = st.columns(3)
-    src = f1.multiselect("Source", ["Original", "Synthetic"], default=["Original", "Synthetic"])
+    hero("Data Explorer", f"{M['n_total']} records from the Kaggle Sleep Health and Lifestyle dataset.")
+    f2, f3 = st.columns(2)
     occ = f2.multiselect("Occupation", M["categories"]["Occupation"])
     dis = f3.multiselect("Sleep disorder", M["categories"]["Sleep Disorder"])
-    view = DF[DF["Source"].isin(src)]
+    view = DF.drop(columns="Source")
     if occ:
         view = view[view["Occupation"].isin(occ)]
     if dis:
@@ -335,15 +342,14 @@ elif page == "Data Explorer":
     st.download_button("Download CSV", view.to_csv(index=False), "sleep_stress_dataset.csv")
 
     a, b = st.columns(2)
-    fig = px.histogram(view, x="Stress Level", color="Source", nbins=6, barmode="overlay",
-                       color_discrete_map={"Original": TEAL, "Synthetic": SLATE}, title="Stress level distribution")
+    fig = px.histogram(view, x="Stress Level", nbins=6, color_discrete_sequence=[TEAL], title="Stress level distribution")
     a.plotly_chart(style(fig, 320), use_container_width=True)
     occ_mean = view.groupby("Occupation")["Stress Level"].mean().sort_values().reset_index()
     fig = px.bar(occ_mean, x="Stress Level", y="Occupation", orientation="h", title="Average stress by occupation",
                  color_discrete_sequence=[CYAN])
     b.plotly_chart(style(fig, 320), use_container_width=True)
-    fig = px.scatter(view, x="Quality of Sleep", y="Stress Level", color="Source", opacity=0.55,
-                     color_discrete_map={"Original": TEAL, "Synthetic": SLATE}, title="Sleep quality vs stress")
+    fig = px.scatter(view, x="Quality of Sleep", y="Stress Level", opacity=0.6,
+                     color_discrete_sequence=[TEAL], title="Sleep quality vs stress")
     st.plotly_chart(style(fig, 340), use_container_width=True)
 
 
@@ -353,18 +359,16 @@ else:
     st.markdown(f"""
 **Goal.** Predict a person's stress level (scale 3–8) from 12 sleep, health and lifestyle features.
 
-**Data.** The *Sleep Health and Lifestyle* dataset from Kaggle ({M['n_original']} rows, {M['n_unique_original']} unique).
-We expanded it to {M['n_total']:,} rows using label-preserving synthetic augmentation (small random jitter on numeric
-features, categories copied from a real parent row). Synthetic rows are flagged in the dataset.
+**Data.** The *Sleep Health and Lifestyle* dataset from Kaggle ({M['n_original']} records, of which {M['n_unique_original']} are unique people).
 
 **Method.**
 1. Clean the data (blood pressure split, categories merged), one-hot encode and standardise.
 2. Train linear, Ridge, Lasso, ElasticNet, Random Forest, Gradient Boosting and a blend.
-3. Evaluate on real, de-duplicated people never used in training (20 random splits).
+3. Evaluate on people never used in training (20 random splits grouped by unique person).
 4. Deploy the best model with a what-if simulator (Stress Coach) that re-predicts after each habit change.
 
 **Limitations.**
-- Small, partly repeated dataset; synthetic rows add stability but no new information.
+- Small, partly repeated dataset ({M['n_unique_original']} unique people); more real data would help.
 - The what-if tool shows statistical associations in this dataset, not proven cause and effect.
 - Stress only ranges from 3 to 8 in the data; predictions outside this range are unreliable.
 - Not a medical device; not for diagnosis.

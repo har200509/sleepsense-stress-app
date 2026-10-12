@@ -31,6 +31,7 @@ warnings.filterwarnings("ignore")
 ROOT = Path(__file__).parent
 SRC = ROOT.parent / "Sleep-Health-ML-Project" / "Datasets" / "cleaned-dataset.csv"
 TARGET_ROWS = 1000
+AUGMENT = False   # synthetic rows gave no accuracy gain on real people, so the app uses real data only
 SEED = 42
 
 NUMERIC = ["Age", "Sleep Duration", "Quality of Sleep", "Physical Activity Level",
@@ -112,7 +113,8 @@ def evaluate(real: pd.DataFrame, n_splits: int = 20) -> pd.DataFrame:
         scale = TARGET_ROWS / len(real)
         train_aug = augment(train, int(round(len(train) * scale)), rng)
         for name in MODELS:
-            for data_name, data in (("real only", train), ("augmented", train_aug)):
+            variants = [("real only", train)] + ([("augmented", train_aug)] if AUGMENT else [])
+            for data_name, data in variants:
                 m = make_model(name).fit(data[FEATURES], data[TARGET])
                 s = score(test[TARGET], m.predict(test[FEATURES]))
                 rows.append(dict(model=name, data=data_name, **s))
@@ -128,16 +130,16 @@ def main():
     res = evaluate(real)
     print(res.round(3).to_string())
 
-    aug = res[res["data"] == "augmented"].sort_values("rmse_mean")
+    aug = res[res["data"] == ("augmented" if AUGMENT else "real only")].sort_values("rmse_mean")
     best_name = aug.iloc[0]["model"]
     print("\nBest on real held-out data:", best_name)
 
     # ---- final dataset + model on all data -------------------------------
     rng = np.random.default_rng(SEED)
-    full = augment(real, TARGET_ROWS, rng)
+    full = augment(real, TARGET_ROWS, rng) if AUGMENT else real.copy()
     full.insert(0, "Source", ["Original"] * len(real) + ["Synthetic"] * (len(full) - len(real)))
     full.insert(0, "Person ID", range(1, len(full) + 1))
-    full.to_csv(ROOT / "data" / "sleep_stress_1000.csv", index=False)
+    full.to_csv(ROOT / "data" / "sleep_stress_data.csv", index=False)
 
     final = make_model(best_name).fit(full[FEATURES], full[TARGET])
     joblib.dump(final, ROOT / "models" / "stress_model.joblib")
