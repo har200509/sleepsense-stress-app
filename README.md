@@ -18,4 +18,4 @@ streamlit run app.py
 4. Deploy. The app is live at `https://<your-subdomain>.streamlit.app`.
 
 Change the name shown in the app by editing `AUTHOR` at the top of `app.py`.
-`train.py` reads the source CSV from `../Sleep-Health-ML-Project/Datasets/`; the committed files in `data/` and `models/` are enough to run the app.
+`train.py` reads `data/cleaned-dataset.csv` (the cleaned Kaggle dataset) and rewrites `models/` and `data/sleep_stress_data.csv`.

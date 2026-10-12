@@ -29,7 +29,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 warnings.filterwarnings("ignore")
 
 ROOT = Path(__file__).parent
-SRC = ROOT.parent / "Sleep-Health-ML-Project" / "Datasets" / "cleaned-dataset.csv"
+SRC = ROOT / "data" / "cleaned-dataset.csv"
 TARGET_ROWS = 1000
 AUGMENT = False   # synthetic rows gave no accuracy gain on real people, so the app uses real data only
 SEED = 42
