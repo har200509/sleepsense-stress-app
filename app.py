@@ -150,7 +150,7 @@ if page == "Home":
                            marker_color=[TEAL if v < 0 else ROSE for v in corr.values],
                            text=[f"{v:+.2f}" for v in corr.values], textposition="outside"))
     fig.update_layout(title="Correlation with stress level (teal: protective, rose: risk)", xaxis_range=[-1.1, 1.1])
-    st.plotly_chart(style(fig, 340), use_container_width=True)
+    st.plotly_chart(style(fig, 340), width='stretch')
     st.info("This is an educational project, not a medical tool. Results describe patterns in a "
             "dataset, not a diagnosis.")
 
@@ -199,7 +199,7 @@ These are associations learned from the dataset, not proven cause and effect, an
     label, color = band(score)
 
     with right:
-        st.plotly_chart(gauge(score), use_container_width=True)
+        st.plotly_chart(gauge(score), width='stretch')
         avg = DF["Stress Level"].mean()
         diff = score - avg
         st.markdown(
@@ -232,7 +232,7 @@ These are associations learned from the dataset, not proven cause and effect, an
         fig.update_layout(title="Possible reduction in predicted stress", xaxis_title="Stress points",
                           yaxis={"autorange": "reversed"})
         fig.update_xaxes(range=[0, max(0.5, max(g for _, g in gains) * 1.35)])
-        st.plotly_chart(style(fig, 320), use_container_width=True)
+        st.plotly_chart(style(fig, 320), width='stretch')
         top = [(t, g) for t, g in gains if g > 0.01]
         top.sort(key=lambda t: -t[1])
         if top:
@@ -262,7 +262,7 @@ These are associations learned from the dataset, not proven cause and effect, an
                              marker_color=[band(score)[1], band(new)[1]],
                              text=[f"{score:.2f}", f"{new:.2f}"], textposition="outside"))
         fig.update_layout(yaxis_range=[0, 10], title="Predicted stress: now vs plan")
-        st.plotly_chart(style(fig, 300), use_container_width=True)
+        st.plotly_chart(style(fig, 300), width='stretch')
 
     with tab3:
         lines = [f"SleepSense stress report - {AUTHOR}", "=" * 44,
@@ -294,10 +294,10 @@ elif page == "Model Lab":
         fig = px.bar(show, x="model", y="R²", color_discrete_sequence=[TEAL],
                      title="R² on unseen people", labels={"model": "", "data": "Training data"})
         fig.update_layout(yaxis_range=[0.7, 1.0], xaxis_tickangle=-25)
-        st.plotly_chart(style(fig, 400), use_container_width=True)
+        st.plotly_chart(style(fig, 400), width='stretch')
     with c2:
         st.dataframe(show[["model", "R²", "RMSE", "MAPE %"]]
-                     .sort_values("RMSE").set_index("model"), use_container_width=True)
+                     .sort_values("RMSE").set_index("model"), width='stretch')
         st.success(f"Selected model: **{best}**")
         st.caption("The blend averages a regularised linear model (stable, smooth) with gradient boosting "
                    "(captures non-linear effects).")
@@ -312,7 +312,7 @@ elif page == "Model Lab":
     fig = px.bar(coef.reset_index().melt("index"), x="index", y="value", color="variable", barmode="group",
                  title="Standardised coefficients by model", labels={"index": "", "value": "Coefficient", "variable": "Model"},
                  color_discrete_sequence=[SLATE, CYAN, TEAL, AMBER])
-    st.plotly_chart(style(fig, 380), use_container_width=True)
+    st.plotly_chart(style(fig, 380), width='stretch')
     if M["lasso_zeroed"]:
         st.info("Lasso removed these features entirely (coefficient 0): " + ", ".join(M["lasso_zeroed"]))
 
@@ -338,19 +338,19 @@ elif page == "Data Explorer":
     if dis:
         view = view[view["Sleep Disorder"].isin(dis)]
     st.caption(f"{len(view):,} rows shown")
-    st.dataframe(view, use_container_width=True, height=300, hide_index=True)
+    st.dataframe(view, width='stretch', height=300, hide_index=True)
     st.download_button("Download CSV", view.to_csv(index=False), "sleep_stress_dataset.csv")
 
     a, b = st.columns(2)
     fig = px.histogram(view, x="Stress Level", nbins=6, color_discrete_sequence=[TEAL], title="Stress level distribution")
-    a.plotly_chart(style(fig, 320), use_container_width=True)
+    a.plotly_chart(style(fig, 320), width='stretch')
     occ_mean = view.groupby("Occupation")["Stress Level"].mean().sort_values().reset_index()
     fig = px.bar(occ_mean, x="Stress Level", y="Occupation", orientation="h", title="Average stress by occupation",
                  color_discrete_sequence=[CYAN])
-    b.plotly_chart(style(fig, 320), use_container_width=True)
+    b.plotly_chart(style(fig, 320), width='stretch')
     fig = px.scatter(view, x="Quality of Sleep", y="Stress Level", opacity=0.6,
                      color_discrete_sequence=[TEAL], title="Sleep quality vs stress")
-    st.plotly_chart(style(fig, 340), use_container_width=True)
+    st.plotly_chart(style(fig, 340), width='stretch')
 
 
 # ================================== ABOUT ====================================
