@@ -126,9 +126,9 @@ if page == "Home":
          "A machine-learning app trained on sleep, health and lifestyle data, with a personal "
          "coach that shows what you could change to lower your predicted stress.")
     c = st.columns(4)
-    c[0].markdown(card("Training data", f"{M['n_total']:,}", f"real records, {M['n_unique_original']} unique profiles"), unsafe_allow_html=True)
+    c[0].markdown(card("Training data", f"{M['n_total']:,}", f"records, {M['n_unique_original']} unique profiles"), unsafe_allow_html=True)
     c[1].markdown(card("Model", "Blend", "ElasticNet + Gradient Boosting"), unsafe_allow_html=True)
-    c[2].markdown(card("R² on unseen people", f"{best_row['r2_mean']:.2f}", "real held-out profiles", TEAL), unsafe_allow_html=True)
+    c[2].markdown(card("R² on unseen people", f"{best_row['r2_mean']:.2f}", "held-out profiles", TEAL), unsafe_allow_html=True)
     c[3].markdown(card("Typical error", f"±{best_row['rmse_mean']:.2f}", "stress points (scale 3–8)", CYAN), unsafe_allow_html=True)
 
     st.markdown("### What's inside")
@@ -137,7 +137,7 @@ if page == "Home":
                     "Predict your stress, see which habits drive it, and test a personal improvement plan."),
                unsafe_allow_html=True)
     b.markdown(card("Model Lab", "Regularisation",
-                    "Linear vs Ridge, Lasso, ElasticNet and tree models, scored on real unseen data."),
+                    "Linear vs Ridge, Lasso, ElasticNet and tree models, scored on unseen data."),
                unsafe_allow_html=True)
     d.markdown(card("Data Explorer", f"{M['n_total']} rows",
                     "Browse, filter and download the dataset behind the model."),
@@ -279,7 +279,7 @@ These are associations learned from the dataset, not proven cause and effect, an
 
 # ================================ MODEL LAB ==================================
 elif page == "Model Lab":
-    hero("Model Lab", "Six model families compared on real, unseen people, including regularised regression.")
+    hero("Model Lab", "Six model families compared on unseen people, including regularised regression.")
     st.markdown(
         f"**How we score fairly.** The dataset has {M['n_original']} records but only "
         f"{M['n_unique_original']} unique people, because many rows repeat. To avoid inflated scores, we split by "
@@ -322,7 +322,7 @@ elif page == "Model Lab":
     st.markdown(
         f"- Regularisation helped: R² rose from **{lin['r2_mean']:.2f}** (plain linear) to **{en['r2_mean']:.2f}** (ElasticNet).\n"
         f"- Blending a regularised model with boosting gave the best score, **R² {best_row['r2_mean']:.2f}**.\n"
-        "- More real data is the clearest way to improve the model further: the dataset has only "
+        "- More data is the clearest way to improve the model further: the dataset has only "
         f"{M['n_unique_original']} unique people.")
 
 
@@ -359,7 +359,7 @@ else:
     st.markdown(f"""
 **Goal.** Predict a person's stress level (scale 3–8) from 12 sleep, health and lifestyle features.
 
-**Data.** The *Sleep Health and Lifestyle* dataset from Kaggle ({M['n_original']} records, of which {M['n_unique_original']} are unique people).
+**Data.** The *Sleep Health and Lifestyle* dataset from Kaggle, a publicly shared **illustrative (synthetic) dataset** ({M['n_original']} records, of which {M['n_unique_original']} are unique people).
 
 **Method.**
 1. Clean the data (blood pressure split, categories merged), one-hot encode and standardise.
@@ -368,7 +368,8 @@ else:
 4. Deploy the best model with a what-if simulator (Stress Coach) that re-predicts after each habit change.
 
 **Limitations.**
-- Small, partly repeated dataset ({M['n_unique_original']} unique people); more real data would help.
+- The source dataset is itself illustrative (synthetic), so findings describe this dataset, not real populations.
+- Small, partly repeated dataset ({M['n_unique_original']} unique people); more data would help.
 - The what-if tool shows statistical associations in this dataset, not proven cause and effect.
 - Stress only ranges from 3 to 8 in the data; predictions outside this range are unreliable.
 - Not a medical device; not for diagnosis.
